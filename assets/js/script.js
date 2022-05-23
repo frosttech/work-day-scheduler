@@ -1,83 +1,39 @@
-
-
 var schedule = [];
-
 var currentDate = new Date();
+var prettyDate = moment(currentDate).format("dddd, MMMM Do");
 var currentHour = moment(currentDate).format("ha");
-var timeDiff = new Date().getTimezoneOffset();
 
 
-var setDate = function() {
-    var prettyDate = moment(currentDate).format("dddd, MMMM Do");
-    $("#currentDay").html(prettyDate);
+var compareTime = function(hour) {
+    var hourInt = parseInt(moment(hour, "ha").format("H"));
+    var currentHourInt = parseInt(moment(currentHour, "ha").format("H"));
+    if (hourInt < currentHourInt) {
+        return "past";
+    }
+    else if (hourInt === currentHourInt) {
+        return "present";
+    }
+    else if (hourInt > currentHourInt) {
+        return "future";
+    }
 };
 
-var createTimeBlock = function(taskId, hour, description) {
-    var timeBlockEl = $("<div>").addClass("row time-block").attr("id", taskId);
-
+var createBlock = function(taskId, hour, description) {
+    var timeClass = compareTime(hour);
+    var timeBlockEl = $("<div>").addClass("row time-block " + timeClass).attr("id", taskId);
     var hourEl = $("<div>").addClass(`col-1 hour ${taskId} `).html(hour);
     var descEl = $("<textarea>").addClass(`col-10 description ${taskId}`).text(description);
     var saveBtnEl = $("<div>").addClass(`col-1 saveBtn ${taskId}`).html('<i class="fa-solid fa-floppy-disk noInteract"></i>');
 
-    if (hour.includes("am")) {
-        if (hour === "12am") {
-            var hourInt = 0;
-        }
-        else {
-            var hourInt = parseInt(hour.slice(0, -2));
-        }
-    }
-    else if (hour.includes("pm")) {
-        if (hour === "12pm") {
-            var hourInt = 12;
-        }
-        else {
-            var hourInt = parseInt(hour.slice(0, -2)) + 12;
-        }
-    }
-
-    if (currentHour.includes("am")) {
-        if (currentHour === "12am") {
-            var currentHourInt = 0;
-        }
-        else {
-            var currentHourInt = parseInt(currentHour.slice(0, -2));
-        }
-    }
-    else if (currentHour.includes("pm")) {
-        if (currentHour === "12pm") {
-            var currentHourInt = 12;
-        }
-        else {
-            var currentHourInt = parseInt(currentHour.slice(0, -2)) + 12;
-        }
-    }
-
-    if (hourInt < currentHourInt) {
-        timeBlockEl.addClass("past");
-    }
-    else if (hourInt === currentHourInt) {
-        timeBlockEl.addClass("present");
-    }
-    else if (hourInt > currentHourInt) {
-        timeBlockEl.addClass("future");
-    }
-    console.log(parseInt(hourInt), parseInt(currentHourInt));
-
- 
-
-
     timeBlockEl.append(hourEl, descEl, saveBtnEl);
-
     $("#schedule-container").append(timeBlockEl);
-
 };
 
 var saveTasks = function() {
     localStorage.setItem("schedule", JSON.stringify(schedule));
 };
 
-var setDefaultBlocks = function() {
+var setDefaultSchedule = function() {
     schedule = {
         date: moment(currentDate).format("MM/DD/YYYY"),
         tasks: [
@@ -132,36 +88,41 @@ var setDefaultBlocks = function() {
     schedule = localStorage.getItem("schedule");
 };
 
-var loadStorage = function() {
+var initializePage = function() {
+    // set date in jumbotron
+    $("#currentDay").html(prettyDate);
+
+    // check for valid data in local storage
     schedule = localStorage.getItem("schedule");
-    console.log(schedule);
     if (!schedule) {
-        setDefaultBlocks();
-        console.log(schedule);
+        // load schedule defaults
+        setDefaultSchedule();
     }
-    schedule = JSON.parse(schedule);  
+
+    schedule = JSON.parse(schedule);
+
+    // compare local storage date with current date
+    console.log(schedule.date);
     if (schedule.date !== moment(currentDate).format("MM/DD/YYYY")) {
         console.log("New date detected, clearing tasks.")
-        setDefaultBlocks();
+        // if new date schedule set to default
+        setDefaultSchedule();
     }
-};
 
-var loadBlocks = function() {
-    loadStorage();
-      
+    // add html elements based on parsed JSON
     for (var i = 0; i < schedule.tasks.length; i++) {
         hour = schedule.tasks[i].hour;
         description = schedule.tasks[i].description;
         taskId = schedule.tasks[i].id;
-        createTimeBlock(taskId, hour, description);
+        createBlock(taskId, hour, description);
     }
 };
 
 var saveBlock = function(taskId) {
     var description = $(`#${taskId} .description`).val();
     console.log(`Task ID: ${taskId}\nDescription: ${description}`);
-    schedule = localStorage.getItem("schedule");
-    schedule = JSON.parse(schedule);
+    // schedule = localStorage.getItem("schedule");
+    // schedule = JSON.parse(schedule);
     for (var i = 0; i < schedule.tasks.length; i++) {
         if (schedule.tasks[i].id === taskId) {
             schedule.tasks[i].description = description;
@@ -170,10 +131,7 @@ var saveBlock = function(taskId) {
     saveTasks();
 };
 
-
-
-setDate();
-loadBlocks();
+initializePage();
 
 $("#schedule-container .time-block").click(function() {  
     var taskId = $(this).attr("id");
